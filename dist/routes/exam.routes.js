@@ -1,0 +1,28 @@
+import { Router } from 'express';
+import { ExamController } from '../controllers/exam.controller.js';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+const router = Router();
+const controller = new ExamController();
+// Apply authentication middleware to all routes
+router.use(authMiddleware);
+// CRUD routes
+router.get('/', asyncHandler(controller.list.bind(controller)));
+router.get('/:id', asyncHandler(controller.getById.bind(controller)));
+router.post('/', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.create.bind(controller)));
+router.put('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.update.bind(controller)));
+router.delete('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.softDelete.bind(controller)));
+// Dropdown data routes
+router.get('/dropdown/boards', asyncHandler(controller.getBoards.bind(controller)));
+router.get('/dropdown/series', asyncHandler(controller.getSeries.bind(controller)));
+router.get('/dropdown/classes', asyncHandler(controller.getClasses.bind(controller)));
+router.get('/dropdown/blueprints', asyncHandler(controller.getBlueprints.bind(controller)));
+router.get('/dropdown/academic-boards', asyncHandler(controller.getAcademicBoards.bind(controller)));
+// Create master data routes
+router.post('/dropdown/boards', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createBoard.bind(controller)));
+router.post('/dropdown/series', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createSeries.bind(controller)));
+router.post('/dropdown/classes', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createClass.bind(controller)));
+router.post('/dropdown/blueprints', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createBlueprint.bind(controller)));
+router.post('/dropdown/academic-boards', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createAcademicBoard.bind(controller)));
+export default router;
+//# sourceMappingURL=exam.routes.js.map
