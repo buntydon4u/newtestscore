@@ -1,0 +1,595 @@
+{
+	"info": {
+		"_postman_id": "educational-platform-api",
+		"name": "Educational Platform API",
+		"description": "Complete API collection for Educational Platform Package Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Package Management",
+			"item": [
+				{
+					"name": "Get All Packages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/packages",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages"],
+							"query": [
+								{
+									"key": "package_type",
+									"value": "{{packageType}}",
+									"description": "Filter by package type (class, subject, stream, test_series, chapter)"
+								},
+								{
+									"key": "class_id",
+									"value": "{{classId}}",
+									"description": "Filter by class ID"
+								},
+								{
+									"key": "stream_id",
+									"value": "{{streamId}}",
+									"description": "Filter by stream ID"
+								},
+								{
+									"key": "subject_id",
+									"value": "{{subjectId}}",
+									"description": "Filter by subject ID"
+								},
+								{
+									"key": "is_active",
+									"value": "{{isActive}}",
+									"description": "Filter by active status (true/false)"
+								},
+								{
+									"key": "min_price",
+									"value": "{{minPrice}}",
+									"description": "Minimum price filter"
+								},
+								{
+									"key": "max_price",
+									"value": "{{maxPrice}}",
+									"description": "Maximum price filter"
+								}
+							]
+						},
+						"description": "Retrieve all packages with optional filtering"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Package by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/packages/{{packageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "{{packageId}}"]
+						},
+						"description": "Retrieve a specific package by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Package",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"package_name\": \"Class 11 Physics\",\n  \"package_type\": \"subject\",\n  \"description\": \"Complete Physics course for Class 11\",\n  \"price\": 1999,\n  \"duration_months\": 12,\n  \"class_id\": 1,\n  \"stream_id\": 2,\n  \"subject_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/packages",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages"]
+						},
+						"description": "Create a new package. Note: Required fields vary by package_type:\n- class: class_id\n- stream: class_id, stream_id\n- subject: class_id, stream_id, subject_id\n- test_series: none\n- chapter: class_id, stream_id, subject_id, chapter_id"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Package",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 2499,\n  \"description\": \"Updated Physics course with additional content\",\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/packages/{{packageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "{{packageId}}"]
+						},
+						"description": "Update an existing package"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Package",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/packages/{{packageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "{{packageId}}"]
+						},
+						"description": "Soft delete a package (sets is_active to false)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Classes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/packages/classes/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "classes", "list"]
+						},
+						"description": "Retrieve all available classes"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Streams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/packages/streams/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "streams", "list"]
+						},
+						"description": "Retrieve all available streams"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subjects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/packages/subjects/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "subjects", "list"],
+							"query": [
+								{
+									"key": "stream_id",
+									"value": "{{streamId}}",
+									"description": "Optional: Filter subjects by stream ID"
+								}
+							]
+						},
+						"description": "Retrieve all subjects or filter by stream"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing educational packages"
+		},
+		{
+			"name": "Order Management",
+			"item": [
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"package_ids\": [1, 2, 3]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders"]
+						},
+						"description": "Create a new order with selected packages"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders/{{orderId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "{{orderId}}"]
+						},
+						"description": "Retrieve a specific order by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders/student/{{studentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "student", "{{studentId}}"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of orders to return"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"description": "Number of orders to skip"
+								}
+							]
+						},
+						"description": "Retrieve all orders for a specific student"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"paid\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/{{orderId}}/payment",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "{{orderId}}", "payment"]
+						},
+						"description": "Update payment status of an order. Status options: pending, paid, failed, refunded"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"order_id\": 123,\n  \"payment_status\": \"paid\",\n  \"transaction_id\": \"txn_1234567890\",\n  \"payment_gateway\": \"razorpay\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/webhook/payment",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "webhook", "payment"]
+						},
+						"description": "Webhook endpoint for payment gateways to notify payment status"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing orders and payments"
+		},
+		{
+			"name": "Student Access",
+			"item": [
+				{
+					"name": "Get Student Packages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/packages/student/{{studentId}}/packages",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "student", "{{studentId}}", "packages"]
+						},
+						"description": "Retrieve all packages a student has access to"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Student Access",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/packages/student/{{studentId}}/access/{{packageId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["packages", "student", "{{studentId}}", "access", "{{packageId}}"]
+						},
+						"description": "Check if a student has access to a specific package"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing student access to packages"
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Get Order Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminJwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders/stats/admin",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "stats", "admin"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "{{startDate}}",
+									"description": "Optional: Filter from date (ISO string)"
+								},
+								{
+									"key": "endDate",
+									"value": "{{endDate}}",
+									"description": "Optional: Filter to date (ISO string)"
+								}
+							]
+						},
+						"description": "Retrieve order statistics (admin only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Admin-only endpoints"
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Student Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('jwtToken', response.token);",
+									"    pm.collectionVariables.set('studentId', response.student.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login as student to get JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('adminJwtToken', response.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login as admin to get admin JWT token"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "jwtToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminJwtToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "studentId",
+			"value": "456",
+			"type": "string"
+		},
+		{
+			"key": "packageId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "orderId",
+			"value": "123",
+			"type": "string"
+		},
+		{
+			"key": "packageType",
+			"value": "subject",
+			"type": "string"
+		},
+		{
+			"key": "classId",
+			"value": "11",
+			"type": "string"
+		},
+		{
+			"key": "streamId",
+			"value": "2",
+			"type": "string"
+		},
+		{
+			"key": "subjectId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "isActive",
+			"value": "true",
+			"type": "string"
+		},
+		{
+			"key": "minPrice",
+			"value": "1000",
+			"type": "string"
+		},
+		{
+			"key": "maxPrice",
+			"value": "5000",
+			"type": "string"
+		},
+		{
+			"key": "startDate",
+			"value": "2024-01-01T00:00:00Z",
+			"type": "string"
+		},
+		{
+			"key": "endDate",
+			"value": "2024-12-31T23:59:59Z",
+			"type": "string"
+		}
+	]
+}

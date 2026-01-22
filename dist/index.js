@@ -1,12 +1,17 @@
+import dotenv from 'dotenv';
+// Load environment variables FIRST before any other imports
+dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import { connectPostgres } from './config/database.js';
 import { connectMongoDB } from './config/mongodb.js';
 import { auditMiddleware } from './middleware/audit.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+// Import packageDb to ensure it loads at startup
+import packageDb from './config/packageDb.js';
+console.log('Package DB imported:', !!packageDb);
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import superAdminRoutes from './routes/super-admin.routes.js';
@@ -15,12 +20,36 @@ import auditRoutes from './routes/audit.routes.js';
 import courseRoutes from './routes/course.routes.js';
 import studentRoutes from './routes/student.routes.js';
 import examRoutes from './routes/exam.routes.js';
+import packageRoutes from './routes/packageRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 dotenv.config();
+// Debug DATABASE_URL after dotenv is loaded
+console.log('=== DATABASE_URL Debug ===');
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
+console.log('========================');
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 app.use(helmet());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin)
+            return callback(null, true);
+        // Allowed origins
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ];
+        if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 app.use(morgan('combined'));
@@ -43,6 +72,8 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/orders', orderRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 async function startServer() {
