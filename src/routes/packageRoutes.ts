@@ -9,8 +9,14 @@ router.get('/classes', packageController.getClasses);
 router.get('/classes/list', packageController.getClasses);
 router.get('/streams', packageController.getStreams);
 router.get('/streams/list', packageController.getStreams);
+router.post('/streams', packageController.createStream);
+router.put('/streams/:id', packageController.updateStream);
+router.delete('/streams/:id', packageController.deleteStream);
 router.get('/subjects', packageController.getSubjects);
 router.get('/subjects/list', packageController.getSubjects);
+router.post('/subjects', packageController.createSubject);
+router.put('/subjects/:id', packageController.updateSubject);
+router.delete('/subjects/:id', packageController.deleteSubject);
 
 // Student access routes
 router.get('/student/:studentId/packages', packageController.getStudentPackages);

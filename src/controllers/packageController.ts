@@ -288,6 +288,208 @@ export class PackageController {
     }
   };
 
+  // Create stream
+  createStream = async (req: Request, res: Response) => {
+    try {
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Stream name is required'
+        });
+      }
+
+      const newStream = await this.packageService.createStream({ name, description });
+      
+      res.status(201).json({
+        success: true,
+        message: 'Stream created successfully',
+        data: newStream
+      });
+    } catch (error) {
+      console.error('Error creating stream:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create stream',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  // Update stream
+  updateStream = async (req: Request, res: Response) => {
+    try {
+      const streamId = req.params.id;
+      const { name, description } = req.body;
+
+      if (!streamId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid stream ID'
+        });
+      }
+
+      const updatedStream = await this.packageService.updateStream(streamId, { name, description });
+      
+      if (!updatedStream) {
+        return res.status(404).json({
+          success: false,
+          message: 'Stream not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Stream updated successfully',
+        data: updatedStream
+      });
+    } catch (error) {
+      console.error('Error updating stream:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update stream',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  // Delete stream
+  deleteStream = async (req: Request, res: Response) => {
+    try {
+      const streamId = req.params.id;
+      
+      if (!streamId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid stream ID'
+        });
+      }
+
+      const deleted = await this.packageService.deleteStream(streamId);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Stream not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Stream deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting stream:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete stream',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  // Create subject
+  createSubject = async (req: Request, res: Response) => {
+    try {
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Subject name is required'
+        });
+      }
+
+      const newSubject = await this.packageService.createSubject({ name, description });
+      
+      res.status(201).json({
+        success: true,
+        message: 'Subject created successfully',
+        data: newSubject
+      });
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create subject',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  // Update subject
+  updateSubject = async (req: Request, res: Response) => {
+    try {
+      const subjectId = req.params.id;
+      const { name, description } = req.body;
+
+      if (!subjectId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid subject ID'
+        });
+      }
+
+      const updatedSubject = await this.packageService.updateSubject(subjectId, { name, description });
+      
+      if (!updatedSubject) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subject not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Subject updated successfully',
+        data: updatedSubject
+      });
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update subject',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  // Delete subject
+  deleteSubject = async (req: Request, res: Response) => {
+    try {
+      const subjectId = req.params.id;
+      
+      if (!subjectId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid subject ID'
+        });
+      }
+
+      const deleted = await this.packageService.deleteSubject(subjectId);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subject not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Subject deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete subject',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
   // Get student's accessible packages
   getStudentPackages = async (req: Request, res: Response) => {
     try {

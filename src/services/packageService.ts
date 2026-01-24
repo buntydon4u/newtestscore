@@ -259,6 +259,148 @@ export class PackageService {
     return result.rows;
   }
 
+  // Create stream
+  async createStream(streamData: { name: string; description?: string }): Promise<Stream> {
+    const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const query = `
+      INSERT INTO "streams" (id, name, description, "createdAt")
+      VALUES ($1, $2, $3, NOW())
+      RETURNING *
+    `;
+    const values = [streamId, streamData.name, streamData.description || null];
+    const result = await this.db.query(query, values);
+    return result.rows[0];
+  }
+
+  // Update stream
+  async updateStream(streamId: string, updateData: { name?: string; description?: string }): Promise<Stream | null> {
+    const updateFields: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (updateData.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      params.push(updateData.name);
+    }
+
+    if (updateData.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      params.push(updateData.description);
+    }
+
+    if (updateFields.length === 0) {
+      const query = 'SELECT * FROM "streams" WHERE id = $1';
+      const result = await this.db.query(query, [streamId]);
+      return result.rows[0] || null;
+    }
+
+    params.push(streamId);
+    const query = `
+      UPDATE "streams" 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+    const result = await this.db.query(query, params);
+    return result.rows[0] || null;
+  }
+
+  // Delete stream
+  async deleteStream(streamId: string): Promise<boolean> {
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Delete from stream_subjects junction table first
+      await client.query('DELETE FROM "stream_subjects" WHERE "streamId" = $1', [streamId]);
+      
+      // Delete from package_mappings
+      await client.query('DELETE FROM "package_mappings" WHERE "streamId" = $1', [streamId]);
+      
+      // Delete the stream
+      const result = await client.query('DELETE FROM "streams" WHERE id = $1', [streamId]);
+      
+      await client.query('COMMIT');
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Create subject
+  async createSubject(subjectData: { name: string; description?: string }): Promise<Subject> {
+    const subjectId = `subject_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const query = `
+      INSERT INTO "subjects" (id, name, description, "createdAt")
+      VALUES ($1, $2, $3, NOW())
+      RETURNING *
+    `;
+    const values = [subjectId, subjectData.name, subjectData.description || null];
+    const result = await this.db.query(query, values);
+    return result.rows[0];
+  }
+
+  // Update subject
+  async updateSubject(subjectId: string, updateData: { name?: string; description?: string }): Promise<Subject | null> {
+    const updateFields: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (updateData.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      params.push(updateData.name);
+    }
+
+    if (updateData.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      params.push(updateData.description);
+    }
+
+    if (updateFields.length === 0) {
+      const query = 'SELECT * FROM "subjects" WHERE id = $1';
+      const result = await this.db.query(query, [subjectId]);
+      return result.rows[0] || null;
+    }
+
+    params.push(subjectId);
+    const query = `
+      UPDATE "subjects" 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+    const result = await this.db.query(query, params);
+    return result.rows[0] || null;
+  }
+
+  // Delete subject
+  async deleteSubject(subjectId: string): Promise<boolean> {
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Delete from stream_subjects junction table first
+      await client.query('DELETE FROM "stream_subjects" WHERE "subjectId" = $1', [subjectId]);
+      
+      // Delete from package_mappings
+      await client.query('DELETE FROM "package_mappings" WHERE "subjectId" = $1', [subjectId]);
+      
+      // Delete the subject
+      const result = await client.query('DELETE FROM "subjects" WHERE id = $1', [subjectId]);
+      
+      await client.query('COMMIT');
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // Check if student has access to package
   async checkStudentAccess(studentId: string, packageId: string): Promise<boolean> {
     const query = `
