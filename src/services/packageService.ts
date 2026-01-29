@@ -263,8 +263,8 @@ export class PackageService {
   async createStream(streamData: { name: string; description?: string }): Promise<Stream> {
     const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const query = `
-      INSERT INTO "streams" (id, name, description, "createdAt")
-      VALUES ($1, $2, $3, NOW())
+      INSERT INTO "streams" (id, name, description, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, NOW(), NOW())
       RETURNING *
     `;
     const values = [streamId, streamData.name, streamData.description || null];
@@ -331,14 +331,20 @@ export class PackageService {
   }
 
   // Create subject
-  async createSubject(subjectData: { name: string; description?: string }): Promise<Subject> {
+  async createSubject(subjectData: { name: string; description?: string; code?: string; category?: string; type?: string; isCore?: boolean; isMandatory?: boolean }): Promise<Subject> {
     const subjectId = `subject_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const code = subjectData.code || subjectData.name.substring(0, 3).toUpperCase();
+    const category = subjectData.category || 'SCIENCE';
+    const type = subjectData.type || 'THEORY';
+    const isCore = subjectData.isCore !== undefined ? subjectData.isCore : true;
+    const isMandatory = subjectData.isMandatory !== undefined ? subjectData.isMandatory : true;
+    
     const query = `
-      INSERT INTO "subjects" (id, name, description, "createdAt")
-      VALUES ($1, $2, $3, NOW())
+      INSERT INTO "subjects" (id, name, code, category, type, "isCore", "isMandatory", description, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *
     `;
-    const values = [subjectId, subjectData.name, subjectData.description || null];
+    const values = [subjectId, subjectData.name, code, category, type, isCore, isMandatory, subjectData.description || null];
     const result = await this.db.query(query, values);
     return result.rows[0];
   }

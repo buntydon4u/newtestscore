@@ -9,13 +9,19 @@ const controller = new ExamController();
 // Apply authentication middleware to all routes
 router.use(authMiddleware);
 
-// CRUD routes
-router.get('/', asyncHandler(controller.list.bind(controller)));
-router.get('/:id', asyncHandler(controller.getById.bind(controller)));
-router.post('/', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.create.bind(controller)));
-router.put('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.update.bind(controller)));
-router.delete('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.softDelete.bind(controller)));
+// Enrollment routes (declare before /:id)
+router.get('/my/enrollments', roleMiddleware('STUDENT'), asyncHandler(controller.myEnrollments.bind(controller)));
+router.post('/:examId/schedules/:scheduleId/enroll', roleMiddleware('STUDENT'), asyncHandler(controller.enroll.bind(controller)));
+router.delete('/:examId/schedules/:scheduleId/enroll', roleMiddleware('STUDENT'), asyncHandler(controller.cancelEnrollment.bind(controller)));
+router.get(
+  '/:examId/schedules/:scheduleId/enrollments',
+  roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'),
+  asyncHandler(controller.listEnrollments.bind(controller))
+);
 
+// Schedule routes
+router.get('/:id/schedules', asyncHandler(controller.listSchedules.bind(controller)));
+router.post('/:id/schedules', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createSchedule.bind(controller)));
 // Dropdown data routes
 router.get('/dropdown/boards', asyncHandler(controller.getBoards.bind(controller)));
 router.get('/dropdown/series', asyncHandler(controller.getSeries.bind(controller)));
@@ -29,5 +35,12 @@ router.post('/dropdown/series', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'
 router.post('/dropdown/classes', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createClass.bind(controller)));
 router.post('/dropdown/blueprints', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createBlueprint.bind(controller)));
 router.post('/dropdown/academic-boards', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createAcademicBoard.bind(controller)));
+
+// CRUD routes
+router.get('/', asyncHandler(controller.list.bind(controller)));
+router.post('/', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.create.bind(controller)));
+router.get('/:id', asyncHandler(controller.getById.bind(controller)));
+router.put('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.update.bind(controller)));
+router.delete('/:id', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.softDelete.bind(controller)));
 
 export default router;

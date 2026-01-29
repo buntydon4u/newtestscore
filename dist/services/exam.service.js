@@ -176,6 +176,125 @@ export class ExamService {
             },
         });
     }
+    async listSchedules(examId) {
+        return prisma.examSchedule.findMany({
+            where: { examId },
+            orderBy: { startDateTime: 'asc' },
+        });
+    }
+    async createSchedule(examId, data, userId) {
+        return prisma.examSchedule.create({
+            data: {
+                examId,
+                startDateTime: new Date(data.startDateTime),
+                endDateTime: new Date(data.endDateTime),
+                capacity: data.capacity ?? null,
+                enrolledCount: 0,
+            },
+        });
+    }
+    async enrollInSchedule(examId, scheduleId, userId) {
+        return prisma.$transaction(async (tx) => {
+            const schedule = await tx.examSchedule.findUnique({
+                where: { id: scheduleId },
+                select: { id: true, examId: true, capacity: true, enrolledCount: true, startDateTime: true, endDateTime: true },
+            });
+            if (!schedule || schedule.examId !== examId) {
+                const err = new Error('Schedule not found');
+                err.statusCode = 404;
+                throw err;
+            }
+            const enrollment = await tx.examEnrollment.create({
+                data: {
+                    userId,
+                    scheduleId,
+                    status: 'ENROLLED',
+                },
+            });
+            const updatedRows = await tx.$executeRaw `
+        UPDATE "ExamSchedule"
+        SET "enrolledCount" = "enrolledCount" + 1
+        WHERE id = ${scheduleId}
+          AND (capacity IS NULL OR "enrolledCount" < capacity)
+      `;
+            if (updatedRows === 0) {
+                const err = new Error('Schedule capacity full');
+                err.statusCode = 409;
+                throw err;
+            }
+            return enrollment;
+        });
+    }
+    async cancelEnrollment(examId, scheduleId, userId) {
+        return prisma.$transaction(async (tx) => {
+            const schedule = await tx.examSchedule.findUnique({
+                where: { id: scheduleId },
+                select: { id: true, examId: true },
+            });
+            if (!schedule || schedule.examId !== examId) {
+                const err = new Error('Schedule not found');
+                err.statusCode = 404;
+                throw err;
+            }
+            const existing = await tx.examEnrollment.findUnique({
+                where: { userId_scheduleId: { userId, scheduleId } },
+            });
+            if (!existing || existing.status !== 'ENROLLED') {
+                const err = new Error('Enrollment not found');
+                err.statusCode = 404;
+                throw err;
+            }
+            const enrollment = await tx.examEnrollment.update({
+                where: { userId_scheduleId: { userId, scheduleId } },
+                data: { status: 'CANCELLED', cancelledAt: new Date() },
+            });
+            await tx.$executeRaw `
+        UPDATE "ExamSchedule"
+        SET "enrolledCount" = CASE WHEN "enrolledCount" > 0 THEN "enrolledCount" - 1 ELSE 0 END
+        WHERE id = ${scheduleId}
+      `;
+            return enrollment;
+        });
+    }
+    async getMyEnrollments(userId) {
+        return prisma.examEnrollment.findMany({
+            where: { userId },
+            orderBy: { enrolledAt: 'desc' },
+            include: {
+                schedule: {
+                    include: {
+                        exam: true,
+                    },
+                },
+            },
+        });
+    }
+    async listScheduleEnrollments(examId, scheduleId) {
+        const schedule = await prisma.examSchedule.findUnique({
+            where: { id: scheduleId },
+            select: { id: true, examId: true },
+        });
+        if (!schedule || schedule.examId !== examId) {
+            const err = new Error('Schedule not found');
+            err.statusCode = 404;
+            throw err;
+        }
+        return prisma.examEnrollment.findMany({
+            where: { scheduleId },
+            orderBy: { enrolledAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        username: true,
+                        role: true,
+                        status: true,
+                    },
+                },
+            },
+        });
+    }
 }
 export const examService = new ExamService();
 //# sourceMappingURL=exam.service.js.map

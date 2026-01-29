@@ -327,6 +327,105 @@ export declare class ExamService {
         shortName: string;
         website: string | null;
     }>;
+    listSchedules(examId: string): Promise<{
+        id: string;
+        examId: string;
+        startDateTime: Date;
+        endDateTime: Date;
+        capacity: number | null;
+        enrolledCount: number;
+    }[]>;
+    createSchedule(examId: string, data: {
+        startDateTime: string | Date;
+        endDateTime: string | Date;
+        capacity?: number | null;
+    }, userId: string): Promise<{
+        id: string;
+        examId: string;
+        startDateTime: Date;
+        endDateTime: Date;
+        capacity: number | null;
+        enrolledCount: number;
+    }>;
+    enrollInSchedule(examId: string, scheduleId: string, userId: string): Promise<{
+        userId: string;
+        id: string;
+        status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        enrolledAt: Date;
+        cancelledAt: Date | null;
+        scheduleId: string;
+    }>;
+    cancelEnrollment(examId: string, scheduleId: string, userId: string): Promise<{
+        userId: string;
+        id: string;
+        status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        enrolledAt: Date;
+        cancelledAt: Date | null;
+        scheduleId: string;
+    }>;
+    getMyEnrollments(userId: string): Promise<({
+        schedule: {
+            exam: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                isDeleted: boolean;
+                deletedAt: Date | null;
+                deletedBy: string | null;
+                title: string;
+                description: string | null;
+                classId: string | null;
+                boardId: string | null;
+                seriesId: string | null;
+                examType: import(".prisma/client").$Enums.ExamType;
+                deliveryType: import(".prisma/client").$Enums.DeliveryType;
+                duration: number;
+                totalMarks: number;
+                isNegativeMarking: boolean;
+                negativeMarkingValue: number | null;
+                isPracticeMode: boolean;
+                blueprintId: string | null;
+            };
+        } & {
+            id: string;
+            examId: string;
+            startDateTime: Date;
+            endDateTime: Date;
+            capacity: number | null;
+            enrolledCount: number;
+        };
+    } & {
+        userId: string;
+        id: string;
+        status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        enrolledAt: Date;
+        cancelledAt: Date | null;
+        scheduleId: string;
+    })[]>;
+    listScheduleEnrollments(examId: string, scheduleId: string): Promise<({
+        user: {
+            email: string;
+            role: import(".prisma/client").$Enums.UserRole;
+            id: string;
+            username: string;
+            status: import(".prisma/client").$Enums.UserStatus;
+        };
+    } & {
+        userId: string;
+        id: string;
+        status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        enrolledAt: Date;
+        cancelledAt: Date | null;
+        scheduleId: string;
+    })[]>;
 }
 export declare const examService: ExamService;
 //# sourceMappingURL=exam.service.d.ts.map

@@ -16,5 +16,11 @@ export declare class ExamController {
     createClass(req: AuthRequest, res: Response): Promise<void>;
     createBlueprint(req: AuthRequest, res: Response): Promise<void>;
     createAcademicBoard(req: AuthRequest, res: Response): Promise<void>;
+    listSchedules(req: Request, res: Response): Promise<void>;
+    createSchedule(req: AuthRequest, res: Response): Promise<void>;
+    enroll(req: AuthRequest, res: Response): Promise<void>;
+    cancelEnrollment(req: AuthRequest, res: Response): Promise<void>;
+    myEnrollments(req: AuthRequest, res: Response): Promise<void>;
+    listEnrollments(req: AuthRequest, res: Response): Promise<void>;
 }
 //# sourceMappingURL=exam.controller.d.ts.map

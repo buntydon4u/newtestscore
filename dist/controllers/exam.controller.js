@@ -201,5 +201,65 @@ export class ExamController {
         });
         res.status(201).json(data);
     }
+    async listSchedules(req, res) {
+        const { id: examId } = req.params;
+        const schedules = await examService.listSchedules(examId);
+        res.json(schedules);
+    }
+    async createSchedule(req, res) {
+        const { id: examId } = req.params;
+        const { startDateTime, endDateTime, capacity } = req.body;
+        if (!startDateTime || !endDateTime) {
+            throw new AppError(400, 'startDateTime and endDateTime are required');
+        }
+        const schedule = await examService.createSchedule(examId, { startDateTime, endDateTime, capacity }, req.user.userId);
+        res.status(201).json(schedule);
+    }
+    async enroll(req, res) {
+        try {
+            const { examId, scheduleId } = req.params;
+            const enrollment = await examService.enrollInSchedule(examId, scheduleId, req.user.userId);
+            res.status(201).json(enrollment);
+        }
+        catch (err) {
+            if (err?.code === 'P2002') {
+                throw new AppError(409, 'Already enrolled');
+            }
+            if (err?.statusCode) {
+                throw new AppError(err.statusCode, err.message || 'Enrollment failed');
+            }
+            throw err;
+        }
+    }
+    async cancelEnrollment(req, res) {
+        try {
+            const { examId, scheduleId } = req.params;
+            const enrollment = await examService.cancelEnrollment(examId, scheduleId, req.user.userId);
+            res.json(enrollment);
+        }
+        catch (err) {
+            if (err?.statusCode) {
+                throw new AppError(err.statusCode, err.message || 'Cancel enrollment failed');
+            }
+            throw err;
+        }
+    }
+    async myEnrollments(req, res) {
+        const data = await examService.getMyEnrollments(req.user.userId);
+        res.json(data);
+    }
+    async listEnrollments(req, res) {
+        try {
+            const { examId, scheduleId } = req.params;
+            const data = await examService.listScheduleEnrollments(examId, scheduleId);
+            res.json(data);
+        }
+        catch (err) {
+            if (err?.statusCode) {
+                throw new AppError(err.statusCode, err.message || 'Failed to fetch enrollments');
+            }
+            throw err;
+        }
+    }
 }
 //# sourceMappingURL=exam.controller.js.map
