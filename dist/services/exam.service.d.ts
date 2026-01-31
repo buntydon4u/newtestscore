@@ -353,9 +353,9 @@ export declare class ExamService {
         status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
         createdAt: Date;
         updatedAt: Date;
+        scheduleId: string;
         enrolledAt: Date;
         cancelledAt: Date | null;
-        scheduleId: string;
     }>;
     cancelEnrollment(examId: string, scheduleId: string, userId: string): Promise<{
         userId: string;
@@ -363,9 +363,9 @@ export declare class ExamService {
         status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
         createdAt: Date;
         updatedAt: Date;
+        scheduleId: string;
         enrolledAt: Date;
         cancelledAt: Date | null;
-        scheduleId: string;
     }>;
     getMyEnrollments(userId: string): Promise<({
         schedule: {
@@ -404,9 +404,9 @@ export declare class ExamService {
         status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
         createdAt: Date;
         updatedAt: Date;
+        scheduleId: string;
         enrolledAt: Date;
         cancelledAt: Date | null;
-        scheduleId: string;
     })[]>;
     listScheduleEnrollments(examId: string, scheduleId: string): Promise<({
         user: {
@@ -422,9 +422,9 @@ export declare class ExamService {
         status: import(".prisma/client").$Enums.ExamEnrollmentStatus;
         createdAt: Date;
         updatedAt: Date;
+        scheduleId: string;
         enrolledAt: Date;
         cancelledAt: Date | null;
-        scheduleId: string;
     })[]>;
 }
 export declare const examService: ExamService;

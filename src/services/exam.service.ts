@@ -231,6 +231,58 @@ export class ExamService {
         throw err;
       }
 
+      // Check if exam date is still valid (not in the past)
+      const now = new Date();
+      if (schedule.startDateTime < now) {
+        const err: any = new Error('Cannot enroll in past exams');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      // Check for existing enrollment
+      const existingEnrollment = await tx.examEnrollment.findUnique({
+        where: { userId_scheduleId: { userId, scheduleId } },
+      });
+
+      if (existingEnrollment) {
+        if (existingEnrollment.status === 'ENROLLED') {
+          const err: any = new Error('Already enrolled');
+          err.statusCode = 409;
+          err.code = 'P2002'; // Keep the same error code for consistency
+          throw err;
+        }
+        
+        // If cancelled, allow re-enrollment by updating the existing record
+        if (existingEnrollment.status === 'CANCELLED') {
+          const updatedEnrollment = await tx.examEnrollment.update({
+            where: { userId_scheduleId: { userId, scheduleId } },
+            data: { 
+              status: 'ENROLLED', 
+              enrolledAt: new Date(),
+              cancelledAt: null,
+              updatedAt: new Date()
+            },
+          });
+
+          // Increment enrolled count
+          const updatedRows = await tx.$executeRaw`
+            UPDATE "ExamSchedule"
+            SET "enrolledCount" = "enrolledCount" + 1
+            WHERE id = ${scheduleId}
+              AND (capacity IS NULL OR "enrolledCount" < capacity)
+          `;
+
+          if (updatedRows === 0) {
+            const err: any = new Error('Schedule capacity full');
+            err.statusCode = 409;
+            throw err;
+          }
+
+          return updatedEnrollment;
+        }
+      }
+
+      // Create new enrollment if none exists
       const enrollment = await tx.examEnrollment.create({
         data: {
           userId,
