@@ -2,9 +2,11 @@ import { Router } from 'express';
 import { ExamController } from '../controllers/exam.controller.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import multer from 'multer';
 
 const router = Router();
 const controller = new ExamController();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Apply authentication middleware to all routes
 router.use(authMiddleware);
@@ -22,6 +24,13 @@ router.get(
 // Schedule routes
 router.get('/:id/schedules', asyncHandler(controller.listSchedules.bind(controller)));
 router.post('/:id/schedules', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.createSchedule.bind(controller)));
+// Excel question upload (single combined paper)
+router.post(
+  '/:id/upload-questions',
+  roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'),
+  upload.single('file'),
+  asyncHandler(controller.uploadQuestions.bind(controller))
+);
 // Dropdown data routes
 router.get('/dropdown/boards', asyncHandler(controller.getBoards.bind(controller)));
 router.get('/dropdown/series', asyncHandler(controller.getSeries.bind(controller)));

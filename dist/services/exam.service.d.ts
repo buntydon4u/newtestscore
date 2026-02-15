@@ -28,6 +28,27 @@ export declare class ExamService {
             id: string;
             boardId: string;
         } | null;
+        examSubjects: ({
+            subject: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                category: import(".prisma/client").$Enums.SubjectCategory;
+                type: import(".prisma/client").$Enums.SubjectType;
+                description: string | null;
+                code: string;
+                isCore: boolean;
+                isMandatory: boolean;
+                icon: string | null;
+                color: string | null;
+                parentSubjectId: string | null;
+            };
+        } & {
+            id: string;
+            examId: string;
+            subjectId: string;
+        })[];
     } & {
         id: string;
         createdAt: Date;
@@ -79,6 +100,27 @@ export declare class ExamService {
             id: string;
             boardId: string;
         } | null;
+        examSubjects: ({
+            subject: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                category: import(".prisma/client").$Enums.SubjectCategory;
+                type: import(".prisma/client").$Enums.SubjectType;
+                description: string | null;
+                code: string;
+                isCore: boolean;
+                isMandatory: boolean;
+                icon: string | null;
+                color: string | null;
+                parentSubjectId: string | null;
+            };
+        } & {
+            id: string;
+            examId: string;
+            subjectId: string;
+        })[];
     } & {
         id: string;
         createdAt: Date;
@@ -129,6 +171,27 @@ export declare class ExamService {
             id: string;
             boardId: string;
         } | null;
+        examSubjects: ({
+            subject: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                category: import(".prisma/client").$Enums.SubjectCategory;
+                type: import(".prisma/client").$Enums.SubjectType;
+                description: string | null;
+                code: string;
+                isCore: boolean;
+                isMandatory: boolean;
+                icon: string | null;
+                color: string | null;
+                parentSubjectId: string | null;
+            };
+        } & {
+            id: string;
+            examId: string;
+            subjectId: string;
+        })[];
     } & {
         id: string;
         createdAt: Date;
@@ -179,6 +242,27 @@ export declare class ExamService {
             id: string;
             boardId: string;
         } | null;
+        examSubjects: ({
+            subject: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                category: import(".prisma/client").$Enums.SubjectCategory;
+                type: import(".prisma/client").$Enums.SubjectType;
+                description: string | null;
+                code: string;
+                isCore: boolean;
+                isMandatory: boolean;
+                icon: string | null;
+                color: string | null;
+                parentSubjectId: string | null;
+            };
+        } & {
+            id: string;
+            examId: string;
+            subjectId: string;
+        })[];
     } & {
         id: string;
         createdAt: Date;

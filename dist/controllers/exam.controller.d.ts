@@ -4,6 +4,7 @@ export declare class ExamController {
     list(req: Request, res: Response): Promise<void>;
     getById(req: Request, res: Response): Promise<void>;
     create(req: AuthRequest, res: Response): Promise<void>;
+    uploadQuestions(req: AuthRequest, res: Response): Promise<void>;
     update(req: AuthRequest, res: Response): Promise<void>;
     softDelete(req: AuthRequest, res: Response): Promise<void>;
     getBoards(req: Request, res: Response): Promise<void>;

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { examService } from '../services/exam.service.js';
+import { examUploadService } from '../services/examUpload.service.js';
 import { auditService } from '../services/audit.service.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
@@ -40,8 +41,12 @@ export class ExamController {
 
     const orderBy = sort ? { [sort as string]: 'asc' } : { createdAt: 'desc' };
 
+    const pageNumber = parseInt(page as string);
+    const limitNumber = parseInt(limit as string);
+    const skip = (pageNumber - 1) * limitNumber;
+
     const [data, total] = await Promise.all([
-      examService.list(where, orderBy, parseInt(page as string), parseInt(limit as string)),
+      examService.list(where, orderBy, skip, limitNumber),
       examService.count(where)
     ]);
 
@@ -53,8 +58,8 @@ export class ExamController {
     res.json({
       data: sanitizedData,
       total,
-      page: parseInt(page as string),
-      limit: parseInt(limit as string)
+      page: pageNumber,
+      limit: limitNumber
     });
   }
 
@@ -89,6 +94,41 @@ export class ExamController {
     const { deletedBy, ...sanitized } = data;
 
     res.status(201).json(sanitized);
+  }
+
+  async uploadQuestions(req: AuthRequest, res: Response) {
+    const { id: examId } = req.params;
+    const sectionName = req.body.sectionName as string | undefined;
+    const questionBankId = req.body.questionBankId as string | undefined;
+    const file = (req as any).file as { buffer?: Buffer } | undefined;
+
+    if (!file?.buffer) {
+      throw new AppError(400, 'Excel file is required');
+    }
+
+    const result = await examUploadService.uploadCombinedPaper(
+      examId,
+      file.buffer,
+      { sectionName, questionBankId },
+      req.user!.userId
+    );
+
+    await auditService.logAction({
+      userId: req.user!.userId,
+      action: 'EXAM_QUESTION_UPLOAD',
+      entity: 'EXAM',
+      entityId: examId,
+      newValues: { ...result, sectionName, questionBankId },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    await cacheDeletePattern('cache:exam:*');
+
+    res.status(201).json({
+      message: 'Questions uploaded successfully',
+      ...result
+    });
   }
 
   async update(req: AuthRequest, res: Response) {

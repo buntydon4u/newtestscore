@@ -17,6 +17,11 @@ export class ExamService {
                 },
                 board: true,
                 series: true,
+                examSubjects: {
+                    include: {
+                        subject: true,
+                    },
+                },
             },
         });
     }
@@ -39,16 +44,34 @@ export class ExamService {
                 },
                 board: true,
                 series: true,
+                examSubjects: {
+                    include: {
+                        subject: true,
+                    },
+                },
             },
         });
     }
     async create(data, userId) {
-        const examData = data;
+        const { subjectIds, classId, boardId, seriesId, ...examData } = data;
         return prisma.exam.create({
             data: {
                 ...examData,
                 createdAt: new Date(),
                 updatedAt: new Date(),
+                ...(classId ? { class: { connect: { id: classId } } } : {}),
+                ...(boardId ? { board: { connect: { id: boardId } } } : {}),
+                ...(seriesId ? { series: { connect: { id: seriesId } } } : {}),
+                ...(Array.isArray(subjectIds) && subjectIds.length
+                    ? {
+                        examSubjects: {
+                            createMany: {
+                                data: subjectIds.map((subjectId) => ({ subjectId })),
+                                skipDuplicates: true,
+                            },
+                        },
+                    }
+                    : {}),
             },
             include: {
                 class: {
@@ -58,16 +81,35 @@ export class ExamService {
                 },
                 board: true,
                 series: true,
+                examSubjects: {
+                    include: {
+                        subject: true,
+                    },
+                },
             },
         });
     }
     async update(id, data, userId) {
-        const examData = data;
+        const { subjectIds, classId, boardId, seriesId, ...examData } = data;
         return prisma.exam.update({
             where: { id },
             data: {
                 ...examData,
                 updatedAt: new Date(),
+                ...(classId ? { class: { connect: { id: classId } } } : {}),
+                ...(boardId ? { board: { connect: { id: boardId } } } : {}),
+                ...(seriesId ? { series: { connect: { id: seriesId } } } : {}),
+                ...(Array.isArray(subjectIds)
+                    ? {
+                        examSubjects: {
+                            deleteMany: {},
+                            createMany: {
+                                data: subjectIds.map((subjectId) => ({ subjectId })),
+                                skipDuplicates: true,
+                            },
+                        },
+                    }
+                    : {}),
             },
             include: {
                 class: {
@@ -77,6 +119,11 @@ export class ExamService {
                 },
                 board: true,
                 series: true,
+                examSubjects: {
+                    include: {
+                        subject: true,
+                    },
+                },
             },
         });
     }

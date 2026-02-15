@@ -600,6 +600,7 @@ model Subject {
   chapters         Chapter[]
   topics           Topic[]
   learningOutcomes LearningOutcome[]
+  examSubjects     ExamSubject[]
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -890,9 +891,23 @@ model Exam {
   sections              Section[]
   schedules             ExamSchedule[]
   attempts              ExamAttempt[]
+  examSubjects          ExamSubject[]
 
   @@index([boardId])
   @@index([classId])
+}
+
+model ExamSubject {
+  id        String  @id @default(cuid())
+  examId    String
+  subjectId String
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, subjectId])
+  @@index([subjectId])
+  @@map("exam_subjects")
 }
 
 model Section {
