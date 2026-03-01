@@ -49,16 +49,10 @@ export class MediaController {
           throw new AppError(400, 'No file uploaded');
         }
 
-        const { altText, description } = req.body;
-        
         const data = await mediaService.create({
-          filename: req.file.filename,
-          originalName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
-          path: req.file.path,
-          altText,
-          description
+          url: req.file.path,
+          assetType: req.file.mimetype,
+          size: req.file.size
         }, req.user!.userId);
 
         await auditService.logAction({
@@ -92,11 +86,9 @@ export class MediaController {
         }
 
         const files = req.files.map((file: any) => ({
-          filename: file.filename,
-          originalName: file.originalname,
-          mimeType: file.mimetype,
-          size: file.size,
-          path: file.path
+          url: file.path,
+          assetType: file.mimetype,
+          size: file.size
         }));
 
         const data = await mediaService.createMultiple(files, req.user!.userId);
@@ -133,9 +125,9 @@ export class MediaController {
 
   async update(req: AuthRequest, res: Response) {
     const { id } = req.params;
-    const { altText, description } = req.body;
+    const { url, assetType, size } = req.body;
     
-    const data = await mediaService.update(id, { altText, description }, req.user!.userId);
+    const data = await mediaService.update(id, { url, assetType, size }, req.user!.userId);
 
     await auditService.logAction({
       userId: req.user!.userId,
@@ -181,22 +173,22 @@ export class MediaController {
       throw new AppError(404, 'Media asset not found');
     }
 
-    res.sendFile(media.path, { root: '.' });
+    res.redirect(media.url);
   }
 
   async list(req: Request, res: Response) {
-    const { page = 1, limit = 20, mimeType, search } = req.query;
+    const { page = 1, limit = 20, mimeType, assetType, search } = req.query;
 
     const where: any = {};
 
-    if (mimeType) {
-      where.mimeType = { contains: mimeType as string };
+    const typeFilter = (assetType || mimeType) as string | undefined;
+    if (typeFilter) {
+      where.assetType = { contains: typeFilter };
     }
 
     if (search) {
       where.OR = [
-        { originalName: { contains: search as string, mode: 'insensitive' } },
-        { altText: { contains: search as string, mode: 'insensitive' } }
+        { url: { contains: search as string, mode: 'insensitive' } }
       ];
     }
 

@@ -12,6 +12,10 @@ export class ExamAttemptController {
     
     const data = await examAttemptService.startAttempt(examId, scheduleId, req.user!.userId);
 
+    if (!data) {
+      throw new AppError(500, 'Failed to start attempt');
+    }
+
     await auditService.logAction({
       userId: req.user!.userId,
       action: 'EXAM_ATTEMPT_START',
@@ -177,6 +181,17 @@ export class ExamAttemptController {
     res.json(data);
   }
 
+  async getStatus(req: Request, res: Response) {
+    const { id } = req.params;
+    const data = await examAttemptService.getStatus(id, req.user?.userId);
+
+    if (!data) {
+      throw new AppError(404, 'Attempt not found');
+    }
+
+    res.json(data);
+  }
+
   async updateTime(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const { timeSpent } = req.body;
@@ -206,9 +221,34 @@ export class ExamAttemptController {
   async getUserAttempts(req: Request, res: Response) {
     const { userId } = req.params;
     const { page = 1, limit = 10, status, examId } = req.query;
+
+    const effectiveUserId = userId || req.user?.userId;
+    if (!effectiveUserId) {
+      throw new AppError(400, 'User id is required');
+    }
     
     const data = await examAttemptService.getUserAttempts(
-      userId || req.user?.userId,
+      effectiveUserId,
+      {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        status: status as string,
+        examId: examId as string
+      }
+    );
+
+    res.json(data);
+  }
+
+  async listExamAttempts(req: AuthRequest, res: Response) {
+    const { page = 1, limit = 10, status, examId } = req.query;
+
+    if (!examId) {
+      throw new AppError(400, 'examId is required');
+    }
+
+    const data = await examAttemptService.getUserAttempts(
+      req.user!.userId,
       {
         page: parseInt(page as string),
         limit: parseInt(limit as string),

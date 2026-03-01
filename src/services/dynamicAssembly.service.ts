@@ -552,10 +552,9 @@ export class DynamicAssemblyService {
       analysis.totalQuestions += rule.questionCount;
 
       // Topic distribution
-      if (rule.topic) {
+      if (rule.topicId) {
         analysis.byTopic.push({
           topicId: rule.topicId,
-          topicName: rule.topic.name,
           questionCount: rule.questionCount
         });
       }

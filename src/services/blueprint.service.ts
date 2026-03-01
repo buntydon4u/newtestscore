@@ -23,11 +23,7 @@ export class BlueprintService {
     return prisma.examBlueprint.findUnique({
       where: { id },
       include: {
-        rules: {
-          include: {
-            topic: true
-          }
-        },
+        rules: true,
         _count: {
           select: { rules: true }
         }
@@ -128,9 +124,6 @@ export class BlueprintService {
         blueprintId,
         ...data,
         difficultyDistribution: data.difficultyDistribution || {}
-      },
-      include: {
-        topic: true
       }
     });
   }
@@ -139,8 +132,7 @@ export class BlueprintService {
     return prisma.blueprintRule.findUnique({
       where: { id: ruleId },
       include: {
-        blueprint: true,
-        topic: true
+        blueprint: true
       }
     });
   }
@@ -155,9 +147,6 @@ export class BlueprintService {
       data: {
         ...data,
         difficultyDistribution: data.difficultyDistribution || undefined
-      },
-      include: {
-        topic: true
       }
     });
   }
@@ -186,7 +175,7 @@ export class BlueprintService {
     // Check each rule
     for (const rule of blueprint.rules) {
       if (rule.questionCount <= 0) {
-        errors.push(`Rule for topic ${rule.topic?.name || 'Unknown'} must have positive question count`);
+        errors.push(`Rule for topic ${rule.topicId || 'Unknown'} must have positive question count`);
       }
 
       // Check if topic has enough questions
@@ -196,7 +185,7 @@ export class BlueprintService {
         });
 
         if (availableQuestions < rule.questionCount) {
-          errors.push(`Topic ${rule.topic?.name || 'Unknown'} has only ${availableQuestions} questions, but requires ${rule.questionCount}`);
+          errors.push(`Topic ${rule.topicId || 'Unknown'} has only ${availableQuestions} questions, but requires ${rule.questionCount}`);
         }
       }
 
@@ -215,7 +204,7 @@ export class BlueprintService {
       isValid: errors.length === 0,
       errors,
       warnings,
-      totalQuestions: blueprint.rules.reduce((sum, rule) => sum + rule.questionCount, 0)
+      totalQuestions: blueprint.rules.reduce((sum: number, rule) => sum + rule.questionCount, 0)
     };
   }
 
@@ -271,7 +260,7 @@ export class BlueprintService {
         description: blueprint.description
       },
       questions: questions.slice(0, limit),
-      totalInBlueprint: blueprint.rules.reduce((sum, rule) => sum + rule.questionCount, 0)
+      totalInBlueprint: blueprint.rules.reduce((sum: number, rule) => sum + rule.questionCount, 0)
     };
   }
 
@@ -298,7 +287,7 @@ export class BlueprintService {
             blueprintId: newBlueprint.id,
             topicId: rule.topicId,
             questionCount: rule.questionCount,
-            difficultyDistribution: rule.difficultyDistribution
+            difficultyDistribution: rule.difficultyDistribution ?? {}
           }
         });
       }
@@ -370,14 +359,18 @@ export class BlueprintService {
     };
   }
 
-  private seededRandom(seed: string) {
+  private seededRandom(seed: string): () => number {
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
       hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash = hash & hash;
+      hash |= 0;
     }
-    const x = Math.sin(hash) * 10000;
-    return x - Math.floor(x);
+
+    let state = Math.abs(hash) % 233280;
+    return () => {
+      state = (state * 9301 + 49297) % 233280;
+      return state / 233280;
+    };
   }
 
   private shuffleArray<T>(array: T[], random: () => number): T[] {

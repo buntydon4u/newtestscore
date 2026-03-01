@@ -28,11 +28,13 @@ router.post('/attempts/:id/submit-all', roleMiddleware('STUDENT'), asyncHandler(
 
 // Time management
 router.get('/attempts/:id/time', asyncHandler(controller.getRemainingTime.bind(controller)));
+router.get('/attempts/:id/status', asyncHandler(controller.getStatus.bind(controller)));
 router.post('/attempts/:id/time/update', roleMiddleware('STUDENT'), asyncHandler(controller.updateTime.bind(controller)));
 router.post('/attempts/:id/pause', roleMiddleware('STUDENT'), asyncHandler(controller.pauseAttempt.bind(controller)));
 
 // User attempts
 router.get('/users/:userId/attempts', asyncHandler(controller.getUserAttempts.bind(controller)));
+router.get('/exam-attempts', roleMiddleware('STUDENT'), asyncHandler(controller.listExamAttempts.bind(controller)));
 router.get('/exams/:examId/results', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.getExamResults.bind(controller)));
 
 export default router;

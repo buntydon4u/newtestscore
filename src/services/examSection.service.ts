@@ -4,22 +4,24 @@ export class ExamSectionService {
   async createSection(examId: string, data: {
     name: string;
     description?: string;
-    instructions?: string;
+    timeAllotted?: number;
     duration?: number;
-    marksPerQuestion?: number;
-    negativeMarks?: number;
-    questionOrder?: 'SEQUENTIAL' | 'RANDOM';
-    allowReview?: boolean;
-    mandatory?: boolean;
+    totalMarks?: number;
+    sectionNumber?: number;
   }, userId: string) {
+    const existingCount = await prisma.section.count({ where: { examId } });
+    const sectionNumber = data.sectionNumber ?? existingCount + 1;
+    const timeAllotted = data.timeAllotted ?? data.duration ?? 0;
+    const totalMarks = data.totalMarks ?? 0;
+
     return prisma.section.create({
       data: {
         examId,
-        ...data,
-        negativeMarks: data.negativeMarks || 0,
-        questionOrder: data.questionOrder || 'SEQUENTIAL',
-        allowReview: data.allowReview ?? true,
-        mandatory: data.mandatory ?? true
+        sectionNumber,
+        name: data.name,
+        description: data.description,
+        timeAllotted,
+        totalMarks
       },
       include: {
         _count: {
@@ -47,12 +49,19 @@ export class ExamSectionService {
   }
 
   async updateSection(sectionId: string, data: any, userId: string) {
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.sectionNumber !== undefined) updateData.sectionNumber = data.sectionNumber;
+    if (data.timeAllotted !== undefined) updateData.timeAllotted = data.timeAllotted;
+    if (data.totalMarks !== undefined) updateData.totalMarks = data.totalMarks;
+
     return prisma.section.update({
       where: { id: sectionId },
-      data: {
-        ...data,
-        updatedAt: new Date()
-      },
+      data: updateData,
       include: {
         _count: {
           select: { examQuestions: true }
@@ -301,7 +310,7 @@ export class ExamSectionService {
       const original = await tx.section.findUnique({
         where: { id: sectionId },
         include: {
-          questions: {
+          examQuestions: {
             include: {
               question: true
             }
@@ -317,20 +326,16 @@ export class ExamSectionService {
       const newSection = await tx.section.create({
         data: {
           examId: original.examId,
+          sectionNumber: original.sectionNumber,
           name: newName,
           description: original.description,
-          instructions: original.instructions,
-          duration: original.duration,
-          marksPerQuestion: original.marksPerQuestion,
-          negativeMarks: original.negativeMarks,
-          questionOrder: original.questionOrder,
-          allowReview: original.allowReview,
-          mandatory: original.mandatory
+          timeAllotted: original.timeAllotted,
+          totalMarks: original.totalMarks
         }
       });
 
       // Copy questions
-      for (const eq of original.questions) {
+      for (const eq of original.examQuestions) {
         await tx.examQuestion.create({
           data: {
             sectionId: newSection.id,

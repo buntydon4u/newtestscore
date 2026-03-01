@@ -49,6 +49,10 @@ export class BlueprintController {
   async create(req: AuthRequest, res: Response) {
     const data = await blueprintService.create(req.body, req.user!.userId);
 
+    if (!data) {
+      throw new AppError(500, 'Failed to create blueprint');
+    }
+
     await auditService.logAction({
       userId: req.user!.userId,
       action: 'BLUEPRINT_CREATE',
@@ -206,6 +210,10 @@ export class BlueprintController {
     const { name } = req.body;
     
     const data = await blueprintService.clone(id, name, req.user!.userId);
+
+    if (!data) {
+      throw new AppError(500, 'Failed to clone blueprint');
+    }
 
     await auditService.logAction({
       userId: req.user!.userId,

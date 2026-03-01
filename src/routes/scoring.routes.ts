@@ -16,6 +16,8 @@ router.get('/attempts/:id/results', asyncHandler(controller.getResults.bind(cont
 router.get('/attempts/:id/section-scores', asyncHandler(controller.getSectionScores.bind(controller)));
 
 // User scoring history
+router.get('/me', asyncHandler(controller.getMyScoreSummary.bind(controller)));
+router.get('/user/:userId', asyncHandler(controller.getUserScoreSummary.bind(controller)));
 router.get('/users/:userId/scores', asyncHandler(controller.getUserAttemptHistory.bind(controller)));
 router.get('/exams/:examId/results', roleMiddleware('ADMIN', 'SUPER_ADMIN', 'TEACHER'), asyncHandler(controller.getExamResults.bind(controller)));
 router.get('/exams/:examId/leaderboard', asyncHandler(controller.getLeaderboard.bind(controller)));

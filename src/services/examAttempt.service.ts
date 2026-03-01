@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { AttemptStatus } from '@prisma/client';
+import { scoringService } from './scoring.service.js';
 
 export class ExamAttemptService {
   async startAttempt(examId: string, scheduleId?: string, userId?: string) {
@@ -25,7 +26,7 @@ export class ExamAttemptService {
         sections: {
           include: {
             _count: {
-              select: { questions: true }
+              select: { examQuestions: true }
             }
           }
         }
@@ -113,22 +114,42 @@ export class ExamAttemptService {
     const attempt = await prisma.examAttempt.findFirst({
       where: {
         id: attemptId,
-        userId,
-        status: {
-          in: ['NOT_STARTED', 'PAUSED']
-        }
+        userId
       }
     });
 
     if (!attempt) {
-      throw new Error('Attempt not found or cannot be resumed');
+      throw new Error('Attempt not found');
+    }
+
+    if (attempt.status === AttemptStatus.SUBMITTED || attempt.status === AttemptStatus.AUTO_SUBMITTED) {
+      throw new Error('Attempt already submitted');
+    }
+
+    // If already in progress, return as-is
+    if (attempt.status === AttemptStatus.IN_PROGRESS) {
+      return prisma.examAttempt.findUnique({
+        where: { id: attemptId },
+        include: {
+          exam: {
+            include: {
+              sections: true
+            }
+          },
+          sectionAttempts: {
+            include: {
+              section: true
+            }
+          }
+        }
+      });
     }
 
     // Check if time is expired
     if (attempt.remainingTime && attempt.remainingTime <= 0) {
       await prisma.examAttempt.update({
         where: { id: attemptId },
-        data: { status: AttemptStatus.TIME_EXPIRED }
+        data: { status: AttemptStatus.AUTO_SUBMITTED }
       });
       throw new Error('Exam time has expired');
     }
@@ -155,27 +176,34 @@ export class ExamAttemptService {
   }
 
   async submitAttempt(attemptId: string, answers: any[], userId: string) {
-    return prisma.$transaction(async (tx) => {
+    const attempt = await prisma.$transaction(async (tx) => {
       // Save all answers
       for (const answer of answers) {
-        await tx.questionAnswer.upsert({
+        const existing = await tx.questionAnswer.findFirst({
           where: {
-            attemptId_questionId: {
-              attemptId,
-              questionId: answer.questionId
-            }
-          },
-          update: {
-            userAnswer: answer.userAnswer,
-            timeTaken: answer.timeTaken
-          },
-          create: {
             attemptId,
-            questionId: answer.questionId,
-            userAnswer: answer.userAnswer,
-            timeTaken: answer.timeTaken
+            questionId: answer.questionId
           }
         });
+
+        if (existing) {
+          await tx.questionAnswer.update({
+            where: { id: existing.id },
+            data: {
+              userAnswer: answer.userAnswer,
+              timeTaken: answer.timeTaken
+            }
+          });
+        } else {
+          await tx.questionAnswer.create({
+            data: {
+              attemptId,
+              questionId: answer.questionId,
+              userAnswer: answer.userAnswer,
+              timeTaken: answer.timeTaken
+            }
+          });
+        }
       }
 
       // Update attempt status
@@ -205,6 +233,15 @@ export class ExamAttemptService {
 
       return attempt;
     });
+
+    // Auto-evaluate after submit to generate score (objective questions scored, descriptive left null)
+    try {
+      await scoringService.evaluateAttempt(attemptId);
+    } catch (error) {
+      console.error('Auto evaluation failed:', error);
+    }
+
+    return attempt;
   }
 
   async getAttemptSections(attemptId: string, userId?: string) {
@@ -219,7 +256,7 @@ export class ExamAttemptService {
       include: {
         section: {
           include: {
-            questions: {
+            examQuestions: {
               include: {
                 question: {
                   select: {
@@ -252,13 +289,19 @@ export class ExamAttemptService {
       throw new Error('Attempt not found');
     }
 
-    return prisma.sectionAttempt.update({
+    const existing = await prisma.sectionAttempt.findFirst({
       where: {
-        attemptId_sectionId: {
-          attemptId,
-          sectionId
-        }
-      },
+        attemptId,
+        sectionId
+      }
+    });
+
+    if (!existing) {
+      throw new Error('Section attempt not found');
+    }
+
+    return prisma.sectionAttempt.update({
+      where: { id: existing.id },
       data: {
         status: AttemptStatus.IN_PROGRESS,
         updatedAt: new Date()
@@ -282,13 +325,19 @@ export class ExamAttemptService {
       throw new Error('Attempt not found');
     }
 
-    return prisma.sectionAttempt.update({
+    const existing = await prisma.sectionAttempt.findFirst({
       where: {
-        attemptId_sectionId: {
-          attemptId,
-          sectionId
-        }
-      },
+        attemptId,
+        sectionId
+      }
+    });
+
+    if (!existing) {
+      throw new Error('Section attempt not found');
+    }
+
+    return prisma.sectionAttempt.update({
+      where: { id: existing.id },
       data: {
         status: AttemptStatus.SUBMITTED,
         updatedAt: new Date()
@@ -321,7 +370,13 @@ export class ExamAttemptService {
       include: {
         question: {
           include: {
-            topic: true,
+            topic: {
+              select: {
+                id: true,
+                name: true,
+                subjectId: true
+              }
+            },
             options: {
               orderBy: { optionNumber: 'asc' }
             },
@@ -333,8 +388,8 @@ export class ExamAttemptService {
           select: {
             id: true,
             name: true,
-            instructions: true,
-            duration: true
+            timeAllotted: true,
+            totalMarks: true
           }
         }
       },
@@ -386,19 +441,26 @@ export class ExamAttemptService {
       }
     }
 
-    return prisma.questionAnswer.upsert({
+    const existing = await prisma.questionAnswer.findFirst({
       where: {
-        attemptId_questionId: {
-          attemptId,
-          questionId
+        attemptId,
+        questionId
+      }
+    });
+
+    if (existing) {
+      return prisma.questionAnswer.update({
+        where: { id: existing.id },
+        data: {
+          userAnswer,
+          timeTaken,
+          updatedAt: new Date()
         }
-      },
-      update: {
-        userAnswer,
-        timeTaken,
-        updatedAt: new Date()
-      },
-      create: {
+      });
+    }
+
+    return prisma.questionAnswer.create({
+      data: {
         attemptId,
         questionId,
         userAnswer,
@@ -459,6 +521,30 @@ export class ExamAttemptService {
     };
   }
 
+  async getStatus(attemptId: string, userId?: string) {
+    const where: any = { id: attemptId };
+    if (userId) {
+      where.userId = userId;
+    }
+
+    const attempt = await prisma.examAttempt.findUnique({
+      where,
+      select: {
+        id: true,
+        status: true,
+        remainingTime: true,
+        timeSpent: true,
+        updatedAt: true
+      }
+    });
+
+    if (!attempt) {
+      return null;
+    }
+
+    return attempt;
+  }
+
   async updateTime(attemptId: string, timeSpent: number, userId: string) {
     const attempt = await prisma.examAttempt.findFirst({
       where: {
@@ -488,7 +574,7 @@ export class ExamAttemptService {
     if (newRemainingTime <= 0) {
       await prisma.examAttempt.update({
         where: { id: attemptId },
-        data: { status: AttemptStatus.TIME_EXPIRED }
+        data: { status: AttemptStatus.AUTO_SUBMITTED }
       });
     }
   }

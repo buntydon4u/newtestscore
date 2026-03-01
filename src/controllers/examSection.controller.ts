@@ -10,6 +10,10 @@ export class ExamSectionController {
     const { examId } = req.params;
     const data = await examSectionService.createSection(examId, req.body, req.user!.userId);
 
+    if (!data) {
+      throw new AppError(500, 'Failed to create section');
+    }
+
     await auditService.logAction({
       userId: req.user!.userId,
       action: 'EXAM_SECTION_CREATE',
@@ -114,6 +118,10 @@ export class ExamSectionController {
       req.user!.userId
     );
 
+    if (!data) {
+      throw new AppError(404, 'Question assignment not found');
+    }
+
     await auditService.logAction({
       userId: req.user!.userId,
       action: 'EXAM_QUESTION_UPDATE',
@@ -194,6 +202,10 @@ export class ExamSectionController {
     const { name } = req.body;
 
     const data = await examSectionService.duplicateSection(sectionId, name, req.user!.userId);
+
+    if (!data) {
+      throw new AppError(500, 'Failed to duplicate section');
+    }
 
     await auditService.logAction({
       userId: req.user!.userId,

@@ -97,6 +97,7 @@ app.use('/api/exams', examSectionRoutes);
 app.use('/api/blueprints', blueprintRoutes);
 app.use('/api', examAttemptRoutes);
 app.use('/api', scoringRoutes);
+app.use('/api/scoring', scoringRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api', progressReportRoutes);
 app.use('/api', achievementRoutes);

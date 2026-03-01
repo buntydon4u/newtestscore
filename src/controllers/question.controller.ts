@@ -82,6 +82,10 @@ export class QuestionController {
   async create(req: AuthRequest, res: Response) {
     const data = await questionService.create(req.body, req.user!.userId);
 
+    if (!data) {
+      throw new AppError(500, 'Failed to create question');
+    }
+
     await auditService.logAction({
       userId: req.user!.userId,
       action: 'QUESTION_CREATE',
@@ -106,6 +110,10 @@ export class QuestionController {
     }
 
     const data = await questionService.update(id, req.body, req.user!.userId);
+
+    if (!data) {
+      throw new AppError(500, 'Failed to update question');
+    }
 
     await auditService.logAction({
       userId: req.user!.userId,

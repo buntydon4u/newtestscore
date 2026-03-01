@@ -463,15 +463,14 @@ export class ProgressReportService {
       return null;
     }
 
-    const betterUsers = await prisma.userScore.groupBy({
+    const allUsers = await prisma.userScore.groupBy({
       by: ['userId'],
-      _avg: { percentage: true },
-      having: {
-        percentage: {
-          gt: userScore._avg.percentage
-        }
-      }
+      _avg: { percentage: true }
     });
+
+    const betterUsers = allUsers.filter(
+      user => (user._avg.percentage ?? 0) > (userScore._avg.percentage || 0)
+    );
 
     return betterUsers.length + 1;
   }

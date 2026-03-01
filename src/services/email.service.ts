@@ -67,6 +67,30 @@ export class EmailService {
 
     await this.transporter.sendMail(mailOptions);
   }
+
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    template?: string;
+    data?: Record<string, string>;
+    html?: string;
+  }): Promise<void> {
+    let html = options.html;
+
+    if (!html && options.template) {
+      const template = this.loadTemplate(options.template);
+      html = this.replacePlaceholders(template, options.data || {});
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_USER || 'dev@agixam.com',
+      to: options.to,
+      subject: options.subject,
+      html: html || '',
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
 }
 
 export const emailService = new EmailService();

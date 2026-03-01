@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { UserNotification } from '../models/mongodb/userNotification.model.js';
+import { DeliveryMethod, Prisma } from '@prisma/client';
 import { emailService } from './email.service.js';
 
 export class NotificationService {
@@ -42,7 +42,7 @@ export class NotificationService {
     title: string;
     message: string;
     type: string;
-    deliveryMethod?: string;
+    deliveryMethod?: DeliveryMethod;
     relatedEntityType?: string;
     relatedEntityId?: string;
     scheduledFor?: Date;
@@ -58,7 +58,7 @@ export class NotificationService {
           title: data.title,
           message: data.message,
           type: data.type,
-          deliveryMethod: data.deliveryMethod || 'IN_APP',
+          deliveryMethod: data.deliveryMethod || DeliveryMethod.IN_APP,
           relatedEntityType: data.relatedEntityType,
           relatedEntityId: data.relatedEntityId,
           scheduledFor: data.scheduledFor
@@ -88,8 +88,7 @@ export class NotificationService {
     return prisma.userNotification.update({
       where: { id },
       data: {
-        isRead: true,
-        readAt: new Date()
+        isRead: true
       }
     });
   }
@@ -101,8 +100,7 @@ export class NotificationService {
         isRead: false
       },
       data: {
-        isRead: true,
-        readAt: new Date()
+        isRead: true
       }
     });
   }
@@ -170,10 +168,10 @@ export class NotificationService {
   private async sendNotification(notification: any) {
     // Send based on delivery method
     switch (notification.deliveryMethod) {
-      case 'EMAIL':
+      case DeliveryMethod.EMAIL:
         await this.sendEmailNotification(notification);
         break;
-      case 'IN_APP':
+      case DeliveryMethod.IN_APP:
       default:
         // In-app notifications are stored in the database
         break;
@@ -208,7 +206,7 @@ export class NotificationService {
     title: string;
     message: string;
     type: string;
-    deliveryMethod?: string;
+    deliveryMethod?: DeliveryMethod;
     relatedEntityType?: string;
     relatedEntityId?: string;
     scheduledFor?: Date;
@@ -251,8 +249,8 @@ export class NotificationService {
     const where = {
       userId,
       OR: [
-        { title: { contains: query, mode: 'insensitive' } },
-        { message: { contains: query, mode: 'insensitive' } }
+        { title: { contains: query, mode: Prisma.QueryMode.insensitive } },
+        { message: { contains: query, mode: Prisma.QueryMode.insensitive } }
       ]
     };
 

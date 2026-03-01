@@ -57,9 +57,14 @@ export class ScoringController {
   async getUserAttemptHistory(req: Request, res: Response) {
     const { userId } = req.params;
     const { page = 1, limit = 10, examId } = req.query;
-    
+
+    const effectiveUserId = userId || req.user?.userId;
+    if (!effectiveUserId) {
+      throw new AppError(400, 'User id is required');
+    }
+
     const data = await scoringService.getUserAttemptHistory(
-      userId || req.user?.userId,
+      effectiveUserId,
       {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
@@ -68,6 +73,63 @@ export class ScoringController {
     );
 
     res.json(data);
+  }
+
+  async getUserScoreSummary(req: Request, res: Response) {
+    const { userId } = req.params;
+    const { page = 1, limit = 100, examId } = req.query;
+
+    const effectiveUserId = userId || req.user?.userId;
+    if (!effectiveUserId) {
+      throw new AppError(400, 'User id is required');
+    }
+
+    const result = await scoringService.getUserAttemptHistory(
+      effectiveUserId,
+      {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        examId: examId as string
+      }
+    );
+
+    const summary = result.data.map((score: any) => ({
+      examId: score.attempt?.exam?.id || score.attempt?.examId || score.attemptId,
+      totalScore: score.marksSecured,
+      maxScore: score.totalMarks,
+      percentage: score.percentage,
+      createdAt: score.createdAt
+    }));
+
+    res.json(summary);
+  }
+
+  async getMyScoreSummary(req: AuthRequest, res: Response) {
+    const { page = 1, limit = 100, examId } = req.query;
+
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new AppError(401, 'Unauthorized');
+    }
+
+    const result = await scoringService.getUserAttemptHistory(
+      userId,
+      {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        examId: examId as string
+      }
+    );
+
+    const summary = result.data.map((score: any) => ({
+      examId: score.attempt?.exam?.id || score.attempt?.examId || score.attemptId,
+      totalScore: score.marksSecured,
+      maxScore: score.totalMarks,
+      percentage: score.percentage,
+      createdAt: score.createdAt
+    }));
+
+    res.json(summary);
   }
 
   async getExamResults(req: Request, res: Response) {

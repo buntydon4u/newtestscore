@@ -104,13 +104,6 @@ export class ProctorService {
               email: true,
               username: true
             }
-          },
-          attempt: {
-            select: {
-              id: true,
-              examId: true,
-              status: true
-            }
           }
         },
         orderBy: { timestamp: 'desc' }
@@ -296,16 +289,6 @@ export class ProctorService {
               email: true,
               username: true
             }
-          },
-          attempt: {
-            include: {
-              exam: {
-                select: {
-                  id: true,
-                  title: true
-                }
-              }
-            }
           }
         },
         orderBy: { timestamp: 'desc' }
@@ -483,18 +466,6 @@ export class ProctorService {
 
     const events = await prisma.proctorEvent.findMany({
       where,
-      include: {
-        attempt: {
-          include: {
-            exam: {
-              select: {
-                id: true,
-                title: true
-              }
-            }
-          }
-        }
-      },
       orderBy: { timestamp: 'desc' },
       take: 50
     });

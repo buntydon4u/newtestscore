@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { QuestionType } from '@prisma/client';
+import { PerformanceStatus, QuestionType } from '@prisma/client';
 
 export class ScoringService {
   async evaluateAttempt(attemptId: string, manualGrading?: any[], userId?: string) {
@@ -22,7 +22,7 @@ export class ScoringService {
             include: {
               section: {
                 include: {
-                  questions: {
+                  examQuestions: {
                     include: {
                       question: true
                     }
@@ -47,7 +47,7 @@ export class ScoringService {
       // Evaluate each answer
       for (const answer of attempt.answers) {
         const question = answer.question;
-        let isCorrect = false;
+        let isCorrect: boolean | null = false;
         let marksAwarded = 0;
 
         if (!answer.userAnswer || answer.userAnswer === null) {
@@ -67,9 +67,9 @@ export class ScoringService {
             }
           }
 
-          if (isCorrect) {
+          if (isCorrect === true) {
             correctCount++;
-          } else {
+          } else if (isCorrect === false) {
             wrongCount++;
           }
         }
@@ -92,38 +92,43 @@ export class ScoringService {
       const grade = this.calculateGrade(percentage);
 
       // Create or update user score
-      const userScore = await tx.userScore.upsert({
+      const existingScore = await tx.userScore.findFirst({
         where: {
-          attemptId_userId: {
-            attemptId,
-            userId: attempt.userId
-          }
-        },
-        update: {
-          totalMarks,
-          marksSecured,
-          percentage,
-          grade,
-          correctCount,
-          wrongCount,
-          unansweredCount
-        },
-        create: {
-          userId: attempt.userId,
           attemptId,
-          totalMarks,
-          marksSecured,
-          percentage,
-          grade,
-          correctCount,
-          wrongCount,
-          unansweredCount
+          userId: attempt.userId
         }
       });
 
+      const userScore = existingScore
+        ? await tx.userScore.update({
+            where: { id: existingScore.id },
+            data: {
+              totalMarks,
+              marksSecured,
+              percentage,
+              grade,
+              correctCount,
+              wrongCount,
+              unansweredCount
+            }
+          })
+        : await tx.userScore.create({
+            data: {
+              userId: attempt.userId,
+              attemptId,
+              totalMarks,
+              marksSecured,
+              percentage,
+              grade,
+              correctCount,
+              wrongCount,
+              unansweredCount
+            }
+          });
+
       // Calculate section scores
       for (const sectionAttempt of attempt.sectionAttempts) {
-        const sectionQuestions = sectionAttempt.section.questions;
+        const sectionQuestions = sectionAttempt.section.examQuestions;
         let sectionTotal = 0;
         let sectionSecured = 0;
         let sectionCorrect = 0;
@@ -145,28 +150,35 @@ export class ScoringService {
         const sectionPercentage = sectionTotal > 0 ? (sectionSecured / sectionTotal) * 100 : 0;
         const performanceStatus = this.getPerformanceStatus(sectionPercentage);
 
-        await tx.sectionScore.upsert({
+        const existingSectionScore = await tx.sectionScore.findFirst({
           where: {
-            sectionId_attemptId: {
-              sectionId: sectionAttempt.sectionId,
-              attemptId
-            }
-          },
-          update: {
-            totalMarks: sectionTotal,
-            marksSecured: sectionSecured,
-            percentage: sectionPercentage,
-            performanceStatus
-          },
-          create: {
             sectionId: sectionAttempt.sectionId,
-            attemptId,
-            totalMarks: sectionTotal,
-            marksSecured: sectionSecured,
-            percentage: sectionPercentage,
-            performanceStatus
+            attemptId
           }
         });
+
+        if (existingSectionScore) {
+          await tx.sectionScore.update({
+            where: { id: existingSectionScore.id },
+            data: {
+              totalMarks: sectionTotal,
+              marksSecured: sectionSecured,
+              percentage: sectionPercentage,
+              performanceStatus
+            }
+          });
+        } else {
+          await tx.sectionScore.create({
+            data: {
+              sectionId: sectionAttempt.sectionId,
+              attemptId,
+              totalMarks: sectionTotal,
+              marksSecured: sectionSecured,
+              percentage: sectionPercentage,
+              performanceStatus
+            }
+          });
+        }
       }
 
       // Update topic scores
@@ -177,11 +189,11 @@ export class ScoringService {
   }
 
   private evaluateAnswer(question: any, userAnswer: any) {
-    let isCorrect = false;
+    let isCorrect: boolean | null = false;
     let marks = 0;
 
     switch (question.questionType) {
-      case QuestionType.MULTIPLE_CHOICE:
+      case QuestionType.MCQ:
       case QuestionType.TRUE_FALSE:
         // For MCQ, check if selected option matches correct answer
         const correctOption = question.options.find((opt: any) => opt.isCorrect);
@@ -189,7 +201,7 @@ export class ScoringService {
         marks = isCorrect ? question.marks : -question.negativeMarks;
         break;
 
-      case QuestionType.MULTIPLE_SELECT:
+      case QuestionType.MSQ:
         // For multiple select, check if all correct options are selected
         const correctOptions = question.options.filter((opt: any) => opt.isCorrect).map((opt: any) => opt.optionNumber);
         const selectedOptions = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
@@ -199,7 +211,7 @@ export class ScoringService {
         marks = isCorrect ? question.marks : (incorrectSelected ? -question.negativeMarks : 0);
         break;
 
-      case QuestionType.FILL_IN_THE_BLANK:
+      case QuestionType.FILL_BLANK:
         // For fill in the blank, exact match or case-insensitive
         if (typeof question.correctAnswer === 'string') {
           isCorrect = userAnswer.toString().toLowerCase().trim() === question.correctAnswer.toLowerCase().trim();
@@ -211,7 +223,7 @@ export class ScoringService {
         marks = isCorrect ? question.marks : 0;
         break;
 
-      case QuestionType.MATCH_THE_COLUMNS:
+      case QuestionType.MATCH_COLUMN:
         // For match the columns, check all matches
         if (typeof userAnswer === 'object' && typeof question.correctAnswer === 'object') {
           isCorrect = Object.keys(question.correctAnswer).every(
@@ -221,7 +233,10 @@ export class ScoringService {
         marks = isCorrect ? question.marks : 0;
         break;
 
-      case QuestionType.DESCRIPTIVE:
+      case QuestionType.SHORT_ANSWER:
+      case QuestionType.LONG_ANSWER:
+      case QuestionType.PASSAGE_BASED:
+      case QuestionType.NUMERIC:
         // Descriptive questions need manual grading
         isCorrect = null; // Will be graded manually
         marks = 0;
@@ -245,11 +260,11 @@ export class ScoringService {
     return 'F';
   }
 
-  private getPerformanceStatus(percentage: number): string {
-    if (percentage >= 80) return 'EXCELLENT';
-    if (percentage >= 60) return 'GOOD';
-    if (percentage >= 40) return 'AVERAGE';
-    return 'POOR';
+  private getPerformanceStatus(percentage: number): PerformanceStatus {
+    if (percentage >= 80) return PerformanceStatus.STRENGTH;
+    if (percentage >= 60) return PerformanceStatus.OPPORTUNITY;
+    if (percentage >= 40) return PerformanceStatus.WEAKNESS;
+    return PerformanceStatus.THREAT;
   }
 
   private async updateTopicScores(userId: string, answers: any[], tx: any) {
@@ -271,28 +286,32 @@ export class ScoringService {
       const percentage = (correctQuestions / totalQuestions) * 100;
       const performanceStatus = this.getPerformanceStatus(percentage);
 
-      await tx.topicScore.upsert({
-        where: {
-          topicId_userId: {
-            topicId,
-            userId
-          }
-        },
-        update: {
-          totalQuestions,
-          correctQuestions,
-          percentage,
-          performanceStatus
-        },
-        create: {
-          topicId,
-          userId,
-          totalQuestions,
-          correctQuestions,
-          percentage,
-          performanceStatus
-        }
+      const existing = await tx.topicScore.findFirst({
+        where: { topicId, userId }
       });
+
+      if (existing) {
+        await tx.topicScore.update({
+          where: { id: existing.id },
+          data: {
+            totalQuestions,
+            correctQuestions,
+            percentage,
+            performanceStatus
+          }
+        });
+      } else {
+        await tx.topicScore.create({
+          data: {
+            topicId,
+            userId,
+            totalQuestions,
+            correctQuestions,
+            percentage,
+            performanceStatus
+          }
+        });
+      }
     }
   }
 
@@ -302,13 +321,8 @@ export class ScoringService {
       where.userId = userId;
     }
 
-    return prisma.userScore.findUnique({
-      where: {
-        attemptId_userId: {
-          attemptId,
-          userId: userId || ''
-        }
-      },
+    const score = await prisma.userScore.findFirst({
+      where,
       include: {
         attempt: {
           include: {
@@ -323,6 +337,50 @@ export class ScoringService {
         }
       }
     });
+
+    if (score) {
+      return score;
+    }
+
+    // If no score yet, auto-evaluate when attempt is submitted/auto-submitted
+    const attempt = await prisma.examAttempt.findUnique({
+      where: { id: attemptId },
+      select: { status: true, userId: true }
+    });
+
+    if (!attempt) {
+      return null;
+    }
+
+    if (userId && attempt.userId !== userId) {
+      return null;
+    }
+
+    if (attempt.status === 'SUBMITTED' || attempt.status === 'AUTO_SUBMITTED') {
+      try {
+        await this.evaluateAttempt(attemptId);
+      } catch (error) {
+        console.error('Auto evaluation (on score fetch) failed:', error);
+      }
+      return prisma.userScore.findFirst({
+        where,
+        include: {
+          attempt: {
+            include: {
+              exam: {
+                select: {
+                  id: true,
+                  title: true,
+                  totalMarks: true
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    return null;
   }
 
   async getResults(attemptId: string, userId?: string) {
@@ -340,8 +398,7 @@ export class ScoringService {
         scores: true,
         sectionAttempts: {
           include: {
-            section: true,
-            score: true
+            section: true
           }
         },
         answers: {
@@ -376,10 +433,32 @@ export class ScoringService {
       }
     });
 
+    const sectionScores = await prisma.sectionScore.findMany({
+      where: { attemptId }
+    });
+
+    const sectionsById = new Map(
+      attempt.sectionAttempts.map(sa => [
+        sa.sectionId,
+        {
+          id: sa.section.id,
+          name: sa.section.name,
+          sectionNumber: sa.section.sectionNumber,
+          totalMarks: sa.section.totalMarks,
+          timeAllotted: sa.section.timeAllotted
+        }
+      ])
+    );
+
+    const sectionScoresWithSection = sectionScores.map(score => ({
+      ...score,
+      section: sectionsById.get(score.sectionId) || null
+    }));
+
     return {
       attempt,
       score: attempt.scores[0],
-      sectionScores: attempt.sectionAttempts.map(sa => sa.score).filter(Boolean),
+      sectionScores: sectionScoresWithSection,
       topicPerformance,
       summary: {
         totalQuestions: attempt.answers.length,
@@ -404,22 +483,29 @@ export class ScoringService {
       }
     }
 
-    return prisma.sectionScore.findMany({
+    const sectionScores = await prisma.sectionScore.findMany({
       where,
-      include: {
-        section: {
-          include: {
-            exam: {
-              select: {
-                id: true,
-                title: true
-              }
-            }
-          }
-        }
-      },
       orderBy: { createdAt: 'asc' }
     });
+
+    const sections = await prisma.section.findMany({
+      where: { id: { in: sectionScores.map(s => s.sectionId) } },
+      select: {
+        id: true,
+        name: true,
+        sectionNumber: true,
+        totalMarks: true,
+        timeAllotted: true,
+        examId: true
+      }
+    });
+
+    const sectionsById = new Map(sections.map(section => [section.id, section]));
+
+    return sectionScores.map(score => ({
+      ...score,
+      section: sectionsById.get(score.sectionId) || null
+    }));
   }
 
   async getUserAttemptHistory(userId: string, filters: {
@@ -578,7 +664,8 @@ export class ScoringService {
           marksSecured: true,
           correctCount: true,
           wrongCount: true,
-          unansweredCount: true
+          unansweredCount: true,
+          grade: true
         }
       }),
       prisma.examAttempt.groupBy({
@@ -628,13 +715,16 @@ export class ScoringService {
     feedback?: string,
     userId?: string
   ) {
+    const existing = await prisma.questionAnswer.findFirst({
+      where: { attemptId, questionId }
+    });
+
+    if (!existing) {
+      throw new Error('Answer not found');
+    }
+
     return prisma.questionAnswer.update({
-      where: {
-        attemptId_questionId: {
-          attemptId,
-          questionId
-        }
-      },
+      where: { id: existing.id },
       data: {
         marksAwarded,
         isCorrect
@@ -652,13 +742,16 @@ export class ScoringService {
       const results = [];
 
       for (const grade of grading) {
+        const existing = await tx.questionAnswer.findFirst({
+          where: { attemptId, questionId: grade.questionId }
+        });
+
+        if (!existing) {
+          continue;
+        }
+
         const updated = await tx.questionAnswer.update({
-          where: {
-            attemptId_questionId: {
-              attemptId,
-              questionId: grade.questionId
-            }
-          },
+          where: { id: existing.id },
           data: {
             marksAwarded: grade.marksAwarded,
             isCorrect: grade.isCorrect

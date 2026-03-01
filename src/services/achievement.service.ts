@@ -102,7 +102,7 @@ export class AchievementService {
       where.category = category;
     }
 
-    const pipeline = [
+    const pipeline: any[] = [
       { $match: where },
       {
         $group: {

@@ -1,6 +1,5 @@
 import { prisma } from '../config/database.js';
 import fs from 'fs/promises';
-import path from 'path';
 
 export class MediaService {
   async list(where: any, skip: number, take: number) {
@@ -23,28 +22,21 @@ export class MediaService {
   }
 
   async create(data: {
-    filename: string;
-    originalName: string;
-    mimeType: string;
+    url: string;
+    assetType: string;
     size: number;
-    path: string;
-    altText?: string;
-    description?: string;
   }, userId: string) {
     return prisma.mediaAsset.create({
       data: {
-        ...data,
-        uploadedBy: userId
+        ...data
       }
     });
   }
 
   async createMultiple(files: Array<{
-    filename: string;
-    originalName: string;
-    mimeType: string;
+    url: string;
+    assetType: string;
     size: number;
-    path: string;
   }>, userId: string) {
     return prisma.$transaction(async (tx) => {
       const created = [];
@@ -52,8 +44,7 @@ export class MediaService {
       for (const file of files) {
         const media = await tx.mediaAsset.create({
           data: {
-            ...file,
-            uploadedBy: userId
+            ...file
           }
         });
         created.push(media);
@@ -64,8 +55,9 @@ export class MediaService {
   }
 
   async update(id: string, data: {
-    altText?: string;
-    description?: string;
+    url?: string;
+    assetType?: string;
+    size?: number;
   }, userId: string) {
     return prisma.mediaAsset.update({
       where: { id },
@@ -83,11 +75,13 @@ export class MediaService {
         throw new Error('Media asset not found');
       }
 
-      // Delete file from filesystem
-      try {
-        await fs.unlink(media.path);
-      } catch (error) {
-        console.error('Failed to delete file:', error);
+      // Delete file from filesystem if stored locally
+      if (media.url && !media.url.startsWith('http')) {
+        try {
+          await fs.unlink(media.url);
+        } catch (error) {
+          console.error('Failed to delete file:', error);
+        }
       }
 
       // Update questions to remove media reference
@@ -103,11 +97,11 @@ export class MediaService {
     });
   }
 
-  async getByType(mimeType: string) {
+  async getByType(assetType: string) {
     return prisma.mediaAsset.findMany({
       where: {
-        mimeType: {
-          contains: mimeType
+        assetType: {
+          contains: assetType
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -123,13 +117,13 @@ export class MediaService {
         }
       }),
       prisma.mediaAsset.groupBy({
-        by: ['mimeType'],
+        by: ['assetType'],
         _count: {
-          mimeType: true
+          assetType: true
         },
         orderBy: {
           _count: {
-            mimeType: 'desc'
+            assetType: 'desc'
           }
         }
       })
